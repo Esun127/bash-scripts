@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+#coding:utf-8
+
+
+from optparse import OptionParser
+from copy import copy
+from optparse import Option, OptionValueError
+import sys
+import subprocess
+
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+#  自定义类型
+def check_tuple(option, opt, value):
+    to_value = value.split(',')
+    if len(to_value) == 3:
+        try:
+            return tuple(to_value)
+        except ValueError:
+            raise OptionValueError(
+                "option %s: invalid tuple value: %r" % (opt, value))
+    else:
+        raise OptionValueError("option %s: value format is 'host,username,password': %r" % (opt, value))
+
+class MyOption(Option):
+    TYPES = Option.TYPES + ("tuple",)
+    TYPE_CHECKER = copy(Option.TYPE_CHECKER)
+    TYPE_CHECKER["tuple"] = check_tuple
+
+
+
+
+usage = "usage: %prog  -W/--web host,username,password -T/--tserver host,username,password -D/--db host,username,password"
+
+parser = OptionParser(option_class=MyOption, usage=usage)
+parser.add_option("-W", "--web", 
+                    dest="web", action="append", type="tuple",
+                  help="传入WEB角色群参数", metavar="host,username,password")
+parser.add_option("-T", "--tserver", type="tuple",
+                  dest="tserver", action="append",
+                    metavar="host,username,password",
+                  help="传入cloudserver角色群参数")
+parser.add_option("-D", "--db",
+                  dest="db", action="store", type="tuple",
+                    metavar="host,username,password",
+                  help="传入DB角色参数")
+
+(options, args) = parser.parse_args()
+
+with open("./hosts", 'w') as f:
+    keylist=['web', 'tserver', 'db']
+    for k in keylist:
+        if hasattr(options, k):
+            vlist=getattr(options, k)
+            if vlist:
+                f.write('['+k+']\n')
+                if isinstance(vlist, list):
+                    for h in vlist:
+                        s = h[0] + '\t' + 'ansible_ssh_user=' + h[1] +'\tansible_ssh_pass=' + h[2] + '\n'
+                        f.write(s)
+                elif isinstance(vlist, tuple):
+                    s = vlist[0] + '\t' + 'ansible_ssh_user=' + vlist[1] +'\tansible_ssh_pass=' + vlist[2] + '\n'
+                    f.write(s)
+                else:
+                    raise ValueError(k + "传递的参数格式有误")
+            else:
+                raise ValueError('未传入参数' + k)
+
+# 执行ansible-playbook
+p=subprocess.Popen("ansible-playbook -i hosts site.yaml", stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, cwd="/root/bby")
+#p=subprocess.Popen("ansible -i hosts all -m ping", stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, cwd="/root/bby")
+o, e = p.communicate()
+if not e:
+    print(o)
+else:
+    raise Exception(e)
