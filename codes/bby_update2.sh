@@ -37,10 +37,10 @@ function genpasswdtxt(){
 function createMysqlAuth(){
         cat > $HOME/.my.cnf <<EOF
 [client]
-user=dbuser_bgV9w7
-password=dbpwd_bkxf1E
-port=3908
-host=127.0.0.1
+user=
+password=
+port=
+host=
 EOF
         getMysqlBinDir || return 1
         exec=$MysqlBinDir/mysqladmin

@@ -32,10 +32,10 @@ test -d $BackupPath || mkdir $BackupPath
 
 cat > $HOME/.my.cnf <<\EOF
 [client]
-user=bbyepdb001
-password=bbyepdb$001
-host=10.27.210.207
-port=3908
+user=
+password=
+host=
+port=
 EOF
 
 MainDbBackupFile="bbyep_main_db_${suffix}.sql"
